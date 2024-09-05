@@ -1,0 +1,160 @@
+# Long channel nmos with 300nm gate length
+go athena
+
+line x loc=0 spac=0.1 
+line x loc=0.2 spac=0.01
+line x loc=0.5 spac=0.01 
+#
+line y loc=0.00 spac=0.01 
+line y loc=0.2 spac=0.01
+line y loc=0.5 spac=0.05
+line y loc=0.8 spac=0.15 
+#
+init orientation=100 c.phos=1e14 space.mul=3
+
+#pwell formation including masking off of the nwell
+#
+diffus time=30 temp=1000 dryo2 press=1.00 hcl=3
+#
+etch oxide thick=0.02
+#
+#P-well Implant
+# 
+implant boron dose=8e12 energy=100 pears
+#
+diffus temp=950 time=100 weto2 hcl=3
+#
+#N-well implant not shown -
+#
+# welldrive starts here
+diffus time=50 temp=1000 t.rate=4.000 dryo2 press=0.10 hcl=3
+#
+diffus time=220 temp=1200 nitro press=1
+#
+diffus time=90 temp=1200 t.rate=-4.444 nitro press=1
+#
+etch oxide all
+#
+#sacrificial "cleaning" oxide
+diffus time=20 temp=1000 dryo2 press=1 hcl=3
+#
+etch oxide all
+#
+#gate oxide grown here:-
+diffus time=11 temp=925 dryo2 press=1.00 hcl=3
+#
+#
+# example for extract device parameters in Athena
+extract thickness name="gateox" oxide mat.occno=1 min.v=140
+
+#
+#vt adjust implant 
+implant boron dose=9.5e11 energy=10 pearson
+#
+depo poly thick=0.2 divi=10 
+#
+#from now on the situation is 2-D
+#
+etch poly left p1.x=0.35
+#
+method fermi compress
+diffuse time=3 temp=900 weto2 press=1.0
+#
+implant phosphor dose=3.0e13 energy=20 pearson
+#
+depo oxide thick=0.120 divisions=8
+#
+etch oxide dry thick=0.120
+#
+implant arsenic dose=5.0e15 energy=40 pearson
+#
+method fermi compress
+diffuse time=1 temp=900 nitro press=1.0
+#
+
+#
+etch oxide left p1.x=0.2
+deposit alumin thick=0.03 divi=2
+etch alumin right p1.x=0.18
+structure mirror right
+
+electrode name=gate x=0.5 y=0.1
+electrode name=source x=0.1
+electrode name=drain x=0.9
+electrode name=substrate backside
+
+
+structure outfile=nmos_300nm.str 
+
+tonyplot nmos_300nm.str
+
+
+############# Electrical properties measurement ################
+
+#Star atlas
+go atlas
+
+# set material models
+models cvt srh print  
+
+#set contact gate
+contact name=gate n.poly
+
+# set interface fixed charge
+interface qf=3e10
+
+#
+# First step : get initial solution, hint: solve _____
+solve init
+
+#solve by numerical method  
+#use trap model to consider the effect of  trap and recombination
+
+method  newton trap 
+solve prev
+
+
+# Bias the gate a bit... to  desired Vg
+solve vgate=0.025 vstep=0.025 vfinal=1.5 name=gate
+
+# Ramp the gate
+
+# record the simulation result into nmos_300nm_idvd.log file
+log outf=nmos_300nm_idvd.log master
+
+solve vdrain=0 vstep=0.1 vgate=1.5 vfinal=3.5 name=drain 
+
+#close .log file to stop recording
+log off
+#Open result file by tonyplot 
+tonyplot  nmos_300nm_idvd.log 
+
+#Start another measurement
+
+solve init
+method  newton trap 
+solve prev
+
+
+# Bias the drain to vfinal
+solve vdrain=0.025 vstep=0.025 vfinal=1.5 name=drain
+
+# Ramp the gate
+log outf=nmos_300nm_idvg.log master
+solve vgate=0 vstep=0.1 vdrain=1.5 vfinal=3.5 name=gate 
+
+
+# example for extract device parameters in Atlas
+extract init inf="nmos_300nm_idvg.log"
+extract name="nvt1" x.val from curve(abs(v."gate"),abs(i."drain")) where y.val=0.1e-6
+
+
+# close log file...
+log off
+
+#Open result file by tonyplot 
+tonyplot  nmos_300nm_idvg.log 
+
+quit
+
+
