@@ -1,0 +1,350 @@
+go athena
+#define device parameter
+set STI=1.32
+set Lg=1
+set Lsd=1
+set Ldd=1
+set Tpoly=-1.82
+Set NMOS=$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg"
+
+#define mesh grid for simulation 
+line x loc=0 spac=0.01
+#width of STIN
+line x loc=$"STI" spac=0.01
+#width of NMOS Source
+line x loc=$"STI"+$"Lsd" spac=0.01
+#width of NMOS Source LDD
+line x loc=$"STI"+$"Lsd"+$"Ldd" spac=0.01
+#width of NMOS hChannel
+line x loc=$"STI"+$"Lsd"+$"Ldd"+($"Lg"*0.5) spac=0.01
+#width of NMOS Channel
+line x loc=$"STI"+$"Lsd"+$"Ldd"+$"Lg" spac=0.01
+#width of NMOS Drain LDD
+line x loc=$"STI"+$"Lsd"+($"Ldd"*2)+$"Lg" spac=0.01
+#width of NMOS Drain
+line x loc=$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" spac=0.01
+#width of STIP
+line x loc=$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg"+($"STI"*0.5) spac=0.01
+
+#width of PMOS
+line x loc=$"NMOS"+$"STI" spac=0.01
+#width of PMOS Source
+line x loc=$"NMOS"+$"STI"+$"Lsd" spac=0.01
+#width of PMOS Source LDD
+line x loc=$"NMOS"+$"STI"+$"Lsd"+$"Ldd" spac=0.01
+#width of PMOS hChannel
+line x loc=$"NMOS"+$"STI"+$"Lsd"+$"Ldd"+($"Lg"*0.5) spac=0.01
+#width of PMOSChannel
+line x loc=$"NMOS"+$"STI"+$"Lsd"+$"Ldd"+$"Lg" spac=0.01
+#width of PMOS Drain LDD
+line x loc=$"NMOS"+$"STI"+$"Lsd"+($"Ldd"*2)+$"Lg" spac=0.01
+#width of PMOS Drain
+line x loc=$"NMOS"+$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" spac=0.01
+#width of STIP
+line x loc=$"NMOS"+($"STI"*2)+($"Lsd"*2)+($"Ldd"*2)+$"Lg" spac=0.01
+line y loc=0.0 spac=0.005
+line y loc=0.25 spac=0.001
+line y loc=0.5 spac=0.005
+line y loc=1 spac=0.05
+
+
+
+
+# To complete a process with numbered steps according to provided hints
+# 1. Defining the Initial Substrate 
+# hint : (100) Si doped with Boron 10^12 with space.mul=2  
+
+
+#clean
+diffus time=20 temp=1000 dryo2 press=1 hcl=3
+etch oxide all
+#Grow pad oxide
+diffuse time=30 temp=1000 dryo2 press=1 hcl=3
+#deposit nitride
+deposit nitride thick=0.4 divisions=10
+
+#spin on photoresist
+deposit photoresist thick=1 POSITIVE
+
+#STI Mask
+etch photoresist start x=0.00 y=-2.00
+etch cont x=$"STI" y=-2.00
+etch cont x=$"STI" y=1.00
+etch done x=0.00 y=1.00
+etch photoresist start x=$"NMOS" y=-2.00
+etch cont x=$"NMOS"+$"STI" y=-2.00
+etch cont x=$"NMOS"+$"STI" y=1.00
+etch done x=$"NMOS" y=1.00
+etch photoresist start x=$"NMOS"+$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=-2.00
+etch cont x=$"NMOS"+($"STI"*2)+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=-2.00
+etch cont x=$"NMOS"+($"STI"*2)+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=1.00
+etch done x=$"NMOS"+$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=1.00
+save outf=01_a.str
+
+#2. etch nitride layer
+#hint: dry thickness =0.5
+
+
+#etchoxide
+etch oxide dry thick=0.042
+#etch all photoresist 
+strip photo
+
+#etch silicon
+rate.etch machine=trench_etch rie silicon iso=0.1 dir=0.9 u.m
+rate.etch machine=trench_etch rie oxide iso=0.1 dir=0.9 u.m
+etch machine=trench_etch time=0.42 minute dx.mult=0.5
+save outf=01_b.str
+
+#3. Grow barrier oxide (Undoped silicate glass (USG))
+# hint : deposit oxide layer with 0.55 um thickness and division=10 
+
+
+#CMPUSG
+rate.polish machine=CMP oxide u.h max.hard=3 min.hard=3 isotropical=0.5
+polish machine=CMP time=9.6 minutes
+
+#strip nitride and pad oxide
+strip nitride
+etch oxide above p1.y=-0.403
+#Reverse mask
+deposit photoresist thick=1 POSITIVE
+etch photoresist above p1.y=-0.403
+etch oxide dry thick=0.43477
+strip photo
+etch oxide above p1.y=0.032
+save outf=01_c.str
+
+#Grow screen oxide
+deposit oxide thick=0.021 div=10
+#spin on photoresist
+deposit photoresist thick=1 POSITIVE
+
+#N-Well mask
+etch photoresist start x=$"NMOS"+$"STI" y=-2.00
+etch cont x=$"NMOS"+$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=-2.00
+etch cont x=$"NMOS"+$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=1.00
+etch done x=$"NMOS"+$"STI" y=1.00
+
+#4. N-Well implant phosphorus
+#hint: fill the dose and energy for phosphor  
+implant phosphor dose= energy= tilt=7 pearson fullrot crystal
+
+#strip photoresist
+strip photo
+save outf=02_a.str
+
+#Anneal and drive in
+diffus temp=950 time=30
+diffus time=20 temp=1000 press=0.10 hcl=3
+
+#spin on photoresist
+deposit photoresist thick=1 POSITIVE
+#P-Well Mask
+etch photoresist start x=$"STI" y=-2.00
+etch cont x=$"NMOS" y=-2.00
+etch cont x=$"NMOS" y=1.00
+etch done x=$"STI" y=1.00
+
+#5. P-Well implant boron
+#hint: fill the dose and energy for boron 
+##implant boron dose= energy= tilt=7 pearson fullrot crystal
+
+#strip photoresist
+strip photo
+save outf=02_b.str
+
+#Anneal and drive-in
+diffus temp=950 time=50
+diffus time=50 temp=20 press=0.10 hcl=3
+
+#clean and etch screen oxide
+etch oxide thick=0.021
+save outf=02_c.str
+
+#Grow sacrificial oxide
+deposit oxide thick=0.01 divisions=5
+#spin on photoresist
+deposit photoresist thick=1 POSITIVE
+
+#Reuse the P-Well mask
+etch photoresist start x=$"STI" y=-2.00
+etch cont x=$"NMOS" y=-2.00
+etch cont x=$"NMOS" y=1.00
+etch done x=$"STI" y=1.00
+
+#6. vt n-channel adjust implant
+#hint: fill the dose for boron
+implant boron dose= energy=10 tilt=30 pearson fullrot crystal
+
+#strip photoresist
+strip photo
+#RTA
+diffuse temp=1000 time=5
+save outf=03_a.str
+
+#spin on photoresist
+deposit photoresist thick=1 POSITIVE
+#Reuse the N-Well mask
+etch photoresist start x=$"NMOS"+$"STI" y=-2.00
+etch cont x=$"NMOS"+$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=-2.00
+etch cont x=$"NMOS"+$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=1.00
+etch done x=$"NMOS"+$"STI" y=1.0
+
+
+#7. vt p-channel adjust implant
+#hint: fill the dose for phosphor
+##implant phosphor dose= energy=10 tilt=30 pearson fullrot crystal
+
+#strip photoresist
+strip photo
+
+#8. rapid thermal anneal(RTA)
+#hint: diffusion with temp=950 time =5
+##diffus temp=950 time=5
+save outf=03_b.str
+
+#clean and sacrificial oxide
+etch oxide thick=0.005
+#Grow gate oxide
+diffus time=4 temp=925 dryo2 press=1.00 hcl=3
+
+#deposit polysilicon
+deposit poly thick=0.2 div=50
+save outf=04_a.str
+#spin on photoresist
+deposit photoresist thick=1 POSITIVE
+
+#Gate mask
+etch photoresist start x=0.00 y=-2.00
+etch cont x=$"STI"+$"Lsd"+$"Ldd" y=-2.00
+etch cont x=$"STI"+$"Lsd"+$"Ldd" y=1.00
+etch done x=0.00 y=1.00
+etch photoresist start x=$"STI"+$"Lsd"+$"Ldd"+$"Lg" y=-2.00
+etch cont x=$"NMOS"+$"STI"+$"Lsd"+$"Ldd" y=-2.00
+etch cont x=$"NMOS"+$"STI"+$"Lsd"+$"Ldd" y=1.00
+etch done x=$"STI"+$"Lsd"+$"Ldd"+$"Lg" y=1.00
+etch photoresist start x=$"NMOS"+$"STI"+$"Lsd"+$"Ldd"+$"Lg" y=-2.00
+etch cont x=$"NMOS"+($"STI"*2)+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=-2.00
+etch cont x=$"NMOS"+($"STI"*2)+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=1.00
+etch done x=$"NMOS"+$"STI"+$"Lsd"+$"Ldd"+$"Lg" y=1.00
+
+#Gate mask
+etch poly start x=0.00 y=-2.00
+etch cont x=$"STI"+$"Lsd"+$"Ldd" y=-2.00
+etch cont x=$"STI"+$"Lsd"+$"Ldd" y=1.00
+etch done x=0.00 y=1.00
+etch poly start x=$"STI"+$"Lsd"+$"Ldd"+$"Lg" y=-2.00
+etch cont x=$"NMOS"+$"STI"+$"Lsd"+$"Ldd" y=-2.00
+etch cont x=$"NMOS"+$"STI"+$"Lsd"+$"Ldd" y=1.00
+etch done x=$"STI"+$"Lsd"+$"Ldd"+$"Lg" y=1.00
+etch poly start x=$"NMOS"+$"STI"+$"Lsd"+$"Ldd"+$"Lg" y=-2.00
+etch cont x=$"NMOS"+($"STI"*2)+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=-2.00
+etch cont x=$"NMOS"+($"STI"*2)+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=1.00
+etch done x=$"NMOS"+$"STI"+$"Lsd"+$"Ldd"+$"Lg" y=1.00
+save outf=04_b.str
+
+#strip photoresist
+strip photo
+#Poly Si anneal/oxidation
+method fermi compress
+diffuse time=3 temp=900 weto2 press=1.0
+save outf=04_c.str
+
+#spin on photoresist
+deposit photoresist thick=1 POSITIVE
+
+#n-channel LDD msak
+etch photoresist start x=$"STI" y=-2.00
+etch cont x=$"NMOS" y=-2.00
+etch cont x=$"NMOS" y=1.00
+etch done x=$"STI" y=1.00
+
+#9. n-channel LDD doping
+#fill the dose for phosphor
+##implant phosphor dose= energy=12 tilt=7 pearson fullrot crystal
+
+#strip photoresist
+strip photo
+save outf=05_a.str
+
+#spin on photoresist
+deposit photoresist thick=1 POSITIVE
+
+#P-channel LDD mask
+etch photoresist start x=$"NMOS"+$"STI" y=-2.00
+etch cont x=$"NMOS"+$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=-2.00
+etch cont x=$"NMOS"+$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=1.00
+etch done x=$"NMOS"+$"STI" y=1.00
+
+#10.P-channel LDD doping
+#hint:fill the dose for phosphor
+##implant boron dose= energy=4 tilt=7 pearson fullrot crystal
+
+#strip photoresist
+strip photo
+save outf=05_b.str
+#thermal oxide
+method fermi compress
+diffuse time=3 temp=900 weto2 press=1.0
+
+#deposit nitride spacer
+deposit nitride thick=0.18 divisions=50
+save outf=06_a.str
+#etching nitride turns into nitride spacer
+etch nitride dry thick=0.192
+save outf=06_b.str
+#spin on photoresist
+deposit photoresist thick=1 POSITIVE
+
+#n-channel S/D n+ mask
+etch photoresist start x=$"STI" y=-2.00
+etch cont x=$"NMOS" y=-2.00
+etch cont x=$"NMOS" y=1.00
+etch done x=$"STI" y=1.00
+
+#11. n-channel S/D n+ doping
+#hint:fill the dose for arsenic
+##implant arsenic dose= energy=75 tilt=74 fullrot crystal
+
+#strip photoresist
+strip photo
+#RTA
+diffus temp=950 time=3
+save outf=07_a.str
+
+#spin on photoresist
+deposit photoresist thick=1 POSITIVE
+#p-channel S/D p+ mask
+etch photoresist start x=$"NMOS"+$"STI" y=-2.00
+etch cont x=$"NMOS"+$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=-2.00
+etch cont x=$"NMOS"+$"STI"+($"Lsd"*2)+($"Ldd"*2)+$"Lg" y=1.00
+etch done x=$"NMOS"+$"STI" y=1.00
+
+#12. p-channel S/D p+ doping
+#hint:fill the dose for boron
+##implant boron dose=1e15 energy=5 tilt=74 fullrot crystal
+
+#strip photoresist
+strip photo
+
+#RTA
+diffus temp=950 time=3
+#etch oxide
+etch oxide thick=0.04271
+save outf=07_b.str
+
+#Deposit aluminum
+deposit aluminum thick=0.03 divi=3
+
+#13. Etch aluminum for electrode region
+
+etch aluminum left p1.x=1.5
+etch aluminum right p1.x=12.5
+
+# hint : Using the command : etch aluminum start x=00 y = 00, etch cont x=00 y = 00,   etch cont x=00 y = 00, etch done x=00 y=00
+
+
+save outf=07_c.str
+
+quit
